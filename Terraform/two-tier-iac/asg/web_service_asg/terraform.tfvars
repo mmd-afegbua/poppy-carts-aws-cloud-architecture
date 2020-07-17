@@ -11,3 +11,7 @@ instance_type = "t2.micro"
 max_size = 3
 
 min_size = 2
+
+elb_name = "external"
+
+elb_port = 80

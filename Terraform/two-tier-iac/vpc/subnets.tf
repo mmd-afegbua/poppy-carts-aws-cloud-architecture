@@ -11,7 +11,7 @@ resource "aws_subnet" "public" {
     map_public_ip_on_launch = true
 
     tags = {
-        "Name" = "Public subnet - element(var.availability_zones, count.index)"
+        "Name" = "public-subnet-${element(var.availability_zones, count.index)}"
     }
 }
 
@@ -23,7 +23,7 @@ resource "aws_subnet" "private" {
     map_public_ip_on_launch = false
 
     tags = {
-        "Name" = "Private subnet - element(var.availability_zones, count.index)"
+        "Name" = "private-subnet-${element(var.availability_zones, count.index)}"
     }
 }
 
@@ -34,7 +34,7 @@ resource "aws_nat_gateway" "main" {
     allocation_id   = element(aws_eip.nat.*.id, count.index)
 
     tags = {
-        "Name" = "NAT - element(var.availability_zones, count.index)"
+        "Name" = "NAT-${element(var.availability_zones, count.index)}"
     }
 }
 

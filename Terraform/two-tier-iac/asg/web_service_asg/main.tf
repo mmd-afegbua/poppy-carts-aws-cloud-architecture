@@ -4,11 +4,13 @@
 # Refer to the diagram for reference#
 #####################################
 
+data "aws_availability_zones" "azs" {}
+
 resource "aws_launch_configuration" "poppy_carts_config" {
   image_id        = var.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance.id]
-  user_data       = var.user_data
+  user_data       = file("start_up.sh")
 
   # Required when using a launch configuration with an auto scaling group.
   # https://www.terraform.io/docs/providers/aws/r/launch_configuration.html
@@ -66,13 +68,17 @@ resource "aws_autoscaling_group" "poppy_carts_asg" {
 
 }
 
+###########################
+# Auto-scaling scheduling #
+###########################
+
 resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
   count = var.enable_autoscaling ? 1 : 0
 
   scheduled_action_name  = "${var.asg_name}-scale-out-during-business-hours"
-  min_size               = 2
+  min_size               = 1
   max_size               = 10
-  desired_capacity       = 10
+  desired_capacity       = 4
   recurrence             = "0 9 * * *"
   autoscaling_group_name = aws_autoscaling_group.poppy_carts_asg.name
 }
@@ -81,26 +87,80 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
   count = var.enable_autoscaling ? 1 : 0
 
   scheduled_action_name  = "${var.asg_name}-scale-in-at-night"
-  min_size               = 2
+  min_size               = 1
   max_size               = 10
   desired_capacity       = 2
   recurrence             = "0 17 * * *"
   autoscaling_group_name = aws_autoscaling_group.poppy_carts_asg.name
 }
 
+####################################
+# Security Group for each instance #
+####################################
+
 resource "aws_security_group" "instance" {
   name = "${var.asg_name}-instance"
+
+  ingress {
+    from_port = var.server_port
+    to_port = var.server_port
+    protocol = local.tcp_protocol
+    cidr_blocks = local.all_ips
+  }
 }
 
-resource "aws_security_group_rule" "allow_server_http_inbound" {
-  type              = "ingress"
-  security_group_id = aws_security_group.instance.id
 
-  from_port   = var.server_port
-  to_port     = var.server_port
-  protocol    = local.tcp_protocol
-  cidr_blocks = local.all_ips
+###################################
+# ELB - Application Load Balancer #
+###################################
+
+resource "aws_elb" "asg_elb" {
+  name               = var.elb_name
+  security_groups    = [aws_security_group.elb_sg.id]
+  availability_zones = data.aws_availability_zones.azs.names
+
+  health_check {
+    target              = "HTTP:${var.server_port}/"
+    interval            = 30
+    timeout             = 3
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+
+  # This adds a listener for incoming HTTP requests.
+  listener {
+    lb_port           = var.elb_port
+    lb_protocol       = "http"
+    instance_port     = var.server_port
+    instance_protocol = "http"
+  }
 }
+
+
+resource "aws_security_group" "elb_sg" {
+  name = "poppy-carts-external-elb"
+
+  # Allow all outbound
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Inbound HTTP from anywhere
+  ingress {
+    from_port   = var.elb_port
+    to_port     = var.elb_port
+    protocol    = local.tcp_protocol
+    cidr_blocks = local.all_ips
+  }
+}
+
+
+################
+# Alarm Metric #
+################
 
 resource "aws_cloudwatch_metric_alarm" "high_cpu_utilization" {
   alarm_name  = "${var.asg_name}-high-cpu-utilization"

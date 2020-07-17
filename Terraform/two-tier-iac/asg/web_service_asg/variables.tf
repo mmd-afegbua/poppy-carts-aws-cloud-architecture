@@ -35,11 +35,11 @@ variable "instance_type" {
   type        = string
 }
 
-variable "user_data" {
-  description = "Script to run on starting"
-  type        = string
-  default     = null
-}
+#variable "user_data" {
+#  description = "Script to run on starting"
+#  type        = string
+#  default     = null
+#}
 
 variable "subnet_id" {
   description = "The subnets to associate with the instances"
@@ -67,6 +67,21 @@ variable "enable_autoscaling" {
   description = "If set to true, enable auto scaling"
   type        = bool
 }
+
+####################################
+#         LOAD BALANCER            #
+####################################
+
+variable "elb_name" {
+  description = "Name of ELB for each ASG"
+  type = string
+}
+
+variable "elb_port" {
+  description = "Ingress port for the ALB"
+  type = string
+}
+
 
 ####################################
 #        OPTIONAL PARAMETERS       #
