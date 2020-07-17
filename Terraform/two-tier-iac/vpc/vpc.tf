@@ -6,7 +6,7 @@ resource "aws_vpc" "main" {
     cidr_block = var.cidr_block
 
     tags = {
-        "Name" = "Poppy Carts VPC"
+        "Name" = "poppy-carts-vpc"
     }
 }
 
@@ -16,6 +16,6 @@ resource "aws_internet_gateway" "main" {
     vpc_id = aws_vpc.main.id
 
     tags = {
-        "Name" = "Poppy Carts IGW"
+        "Name" = "poppy-carts-igw"
     }
 }
