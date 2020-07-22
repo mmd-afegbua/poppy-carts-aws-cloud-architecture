@@ -4,7 +4,15 @@
 # Refer to the diagram for reference#
 #####################################
 
-data "aws_availability_zones" "azs" {}
+data "terraform_remote_state" "vpc" {
+  backend = "s3"
+
+  config = {
+    bucket = "poppy-carts-terraform-backend"
+    key    = "two-tier-iac/vpc/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
 
 resource "aws_launch_configuration" "poppy_carts_config" {
   image_id        = var.ami
@@ -27,10 +35,10 @@ resource "aws_autoscaling_group" "poppy_carts_asg" {
 
   launch_configuration = aws_launch_configuration.poppy_carts_config.name
 
-  vpc_zone_identifier = var.subnet_id
+  vpc_zone_identifier = data.terraform_remote_state.vpc.outputs.public_subnets
 
   # Configure integrations with a load balancer
-  target_group_arns = var.target_group_arns
+  target_group_arns = [aws_alb_target_group.poppy_carts_tg.arn]
   health_check_type = var.health_check_type
 
   min_size = var.min_size
@@ -38,7 +46,8 @@ resource "aws_autoscaling_group" "poppy_carts_asg" {
 
   # Wait for at least this many instances to pass health checks before
   # considering the ASG deployment complete
-  min_elb_capacity = var.min_size
+  
+  # min_elb_capacity = var.min_size #crossed for troubleshooting
 
   # When replacing this ASG, create the replacement first, and only delete the
   # original after
@@ -99,12 +108,13 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
 ####################################
 
 resource "aws_security_group" "instance" {
-  name = "${var.asg_name}-instance"
+  name   = "${var.asg_name}-instance"
+  vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
 
   ingress {
-    from_port = var.server_port
-    to_port = var.server_port
-    protocol = local.tcp_protocol
+    from_port   = var.server_port
+    to_port     = var.server_port
+    protocol    = local.tcp_protocol
     cidr_blocks = local.all_ips
   }
 }
@@ -117,7 +127,8 @@ resource "aws_security_group" "instance" {
 resource "aws_elb" "asg_elb" {
   name               = var.elb_name
   security_groups    = [aws_security_group.elb_sg.id]
-  availability_zones = data.aws_availability_zones.azs.names
+#  availability_zones = var.availability_zones
+  subnets            = data.terraform_remote_state.vpc.outputs.public_subnets
 
   health_check {
     target              = "HTTP:${var.server_port}/"
@@ -138,7 +149,8 @@ resource "aws_elb" "asg_elb" {
 
 
 resource "aws_security_group" "elb_sg" {
-  name = "poppy-carts-external-elb"
+  name   = "poppy-carts-external-elb"
+  vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
 
   # Allow all outbound
   egress {
@@ -157,6 +169,20 @@ resource "aws_security_group" "elb_sg" {
   }
 }
 
+resource "aws_alb_target_group" "poppy_carts_tg" {
+  name     = "poppy-carts-alb-target"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = data.terraform_remote_state.vpc.outputs.vpc_id
+  stickiness {
+    type = "lb_cookie"
+  }
+  # Alter the destination of the health check to be the login page.
+  health_check {
+    path = "/login"
+    port = 80
+  }
+}
 
 ################
 # Alarm Metric #

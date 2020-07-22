@@ -1,6 +1,6 @@
 variable "region" {
   description = "Desired region"
-  type = string
+  type        = string
 }
 
 variable "asg_name" {
@@ -41,11 +41,11 @@ variable "instance_type" {
 #  default     = null
 #}
 
-variable "subnet_id" {
-  description = "The subnets to associate with the instances"
-  type        = list(string)
-  default     = []
-}
+# variable "subnet_id" {
+#  description = "The subnets to associate with the instances"
+#  type        = list(string)
+#  default     = []
+# }
 
 variable "min_size" {
   description = "Minimum number of instances"
@@ -74,14 +74,17 @@ variable "enable_autoscaling" {
 
 variable "elb_name" {
   description = "Name of ELB for each ASG"
-  type = string
+  type        = string
 }
 
 variable "elb_port" {
   description = "Ingress port for the ALB"
-  type = string
+  type        = string
 }
 
+variable "availability_zones" {
+  type = list(string)
+}
 
 ####################################
 #        OPTIONAL PARAMETERS       #
@@ -96,7 +99,7 @@ variable "target_group_arns" {
 variable "health_check_type" {
   description = "The type of health check to perform. Must be one of: EC2, ELB."
   type        = string
-  default     = "EC2"
+  default     = "ELB"
 }
 
 
