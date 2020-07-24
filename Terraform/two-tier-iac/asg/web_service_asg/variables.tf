@@ -68,22 +68,41 @@ variable "enable_autoscaling" {
   type        = bool
 }
 
+
+
 ####################################
-#         LOAD BALANCER            #
+#          APP LOAD BALANCER       #
 ####################################
 
-variable "elb_name" {
-  description = "Name of ELB for each ASG"
-  type        = string
+variable "https_port" {
+  description = "The port for HTTPS"
+  type = string
+  default = 443
 }
 
-variable "elb_port" {
-  description = "Ingress port for the ALB"
-  type        = string
+variable "http_port" {
+  description = "The port for HTTP"
+  type = string
+  default = 80
 }
 
-variable "availability_zones" {
-  type = list(string)
+variable "ssl_policy" {
+  type        = string
+  description = "The name of the SSL Policy for the listener. Required if protocol is HTTPS."
+  default     = "ELBSecurityPolicy-2016-08"
+}
+
+variable "target_group_port" {
+  description = "The port that targets of the lb receives traffic"
+  type = string
+  default = 80
+}
+
+variable "target_group_protocol" {
+  description = "The protocol to use for routing traffic to the targets. Should be one of HTTP or HTTPS."
+  type        = string
+  default     = "HTTP"
+
 }
 
 ####################################
@@ -99,7 +118,7 @@ variable "target_group_arns" {
 variable "health_check_type" {
   description = "The type of health check to perform. Must be one of: EC2, ELB."
   type        = string
-  default     = "ELB"
+  default     = "EC2"
 }
 
 
@@ -114,3 +133,4 @@ variable "server_port" {
   type        = number
   default     = 8080
 }
+

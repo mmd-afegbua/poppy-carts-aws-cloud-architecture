@@ -38,7 +38,7 @@ resource "aws_autoscaling_group" "poppy_carts_asg" {
   vpc_zone_identifier = data.terraform_remote_state.vpc.outputs.public_subnets
 
   # Configure integrations with a load balancer
-  target_group_arns = [aws_alb_target_group.poppy_carts_tg.arn]
+  target_group_arns = [aws_lb_target_group.poppy_carts_tg.arn]
   health_check_type = var.health_check_type
 
   min_size = var.min_size
@@ -119,70 +119,6 @@ resource "aws_security_group" "instance" {
   }
 }
 
-
-###################################
-# ELB - Application Load Balancer #
-###################################
-
-resource "aws_elb" "asg_elb" {
-  name               = var.elb_name
-  security_groups    = [aws_security_group.elb_sg.id]
-#  availability_zones = var.availability_zones
-  subnets            = data.terraform_remote_state.vpc.outputs.public_subnets
-
-  health_check {
-    target              = "HTTP:${var.server_port}/"
-    interval            = 30
-    timeout             = 3
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-  }
-
-  # This adds a listener for incoming HTTP requests.
-  listener {
-    lb_port           = var.elb_port
-    lb_protocol       = "http"
-    instance_port     = var.server_port
-    instance_protocol = "http"
-  }
-}
-
-
-resource "aws_security_group" "elb_sg" {
-  name   = "poppy-carts-external-elb"
-  vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
-
-  # Allow all outbound
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Inbound HTTP from anywhere
-  ingress {
-    from_port   = var.elb_port
-    to_port     = var.elb_port
-    protocol    = local.tcp_protocol
-    cidr_blocks = local.all_ips
-  }
-}
-
-resource "aws_alb_target_group" "poppy_carts_tg" {
-  name     = "poppy-carts-alb-target"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = data.terraform_remote_state.vpc.outputs.vpc_id
-  stickiness {
-    type = "lb_cookie"
-  }
-  # Alter the destination of the health check to be the login page.
-  health_check {
-    path = "/login"
-    port = 80
-  }
-}
 
 ################
 # Alarm Metric #
