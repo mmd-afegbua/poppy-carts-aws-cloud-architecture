@@ -112,10 +112,10 @@ resource "aws_security_group" "poppy_carts_exlb_sg" {
   name = "poppy_carts_exlb_sg"
   vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
 
-#  tags = merge({"Name" = aws_security_group.poppy_carts_exlb_sg.name}, 1)
+  tags = merge({"Name" = aws_security_group.poppy_carts_exlb_sg.name}, 1)
 }
 
-resource "aws_security_group_rule" "ingree_https" {
+resource "aws_security_group_rule" "ingres_https" {
   
   type = "ingress"
   from_port = 443

@@ -2,11 +2,11 @@
 # ELB - Application Load Balancer #
 ###################################
 
-resource "aws_elb" "asg_elb" {
+resource "aws_elb" "internal_elb" {
   name               = var.elb_name
   security_groups    = [aws_security_group.elb_sg.id]
-#  availability_zones = var.availability_zones
-  subnets            = data.terraform_remote_state.vpc.outputs.public_subnets
+  availability_zones = var.availability_zones
+  subnets            = data.terraform_remote_state.vpc.outputs.private_subnets
 
   health_check {
     target              = "HTTP:${var.server_port}/"
@@ -29,22 +29,25 @@ resource "aws_elb" "asg_elb" {
 resource "aws_security_group" "elb_sg" {
   name   = "poppy-carts-external-elb"
   vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
+}
 
-  # Allow all outbound
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+# Allow specific outbound traffic - tweak the ports
+resource "aws_security_group_rule" "ingress" {
+  type = "ingress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  # The CIDR range can also be tweaked for security hardening
+  cidr_blocks = ["0.0.0.0/0"]
+}
 
-  # Inbound HTTP from anywhere
-  ingress {
-    from_port   = var.elb_port
-    to_port     = var.elb_port
-    protocol    = local.tcp_protocol
-    cidr_blocks = local.all_ips
-  }
+# Inbound HTTP from web app only
+resource "aws_security_group_rule" "egress" {
+  type = "egress"
+  from_port   = var.elb_port
+  to_port     = var.elb_port
+  protocol    = local.tcp_protocol
+  cidr_blocks = local.all_ips
 }
 
 resource "aws_alb_target_group" "poppy_carts_tg" {
