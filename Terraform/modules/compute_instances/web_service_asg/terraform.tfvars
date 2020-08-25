@@ -1,6 +1,6 @@
 region = "us-east-1"
 
-ami = "ami-0ac80df6eff0e70b5"
+ami = "ami-0bcc094591f354be2"
 
 asg_name = "poppy_cart_service"
 

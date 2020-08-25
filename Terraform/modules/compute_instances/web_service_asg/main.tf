@@ -117,6 +117,14 @@ resource "aws_security_group" "instance" {
     protocol    = local.tcp_protocol
     cidr_blocks = local.all_ips
   }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = -1
+    # or "all"
+    cidr_blocks = local.all_ips
+  }
 }
 
 
