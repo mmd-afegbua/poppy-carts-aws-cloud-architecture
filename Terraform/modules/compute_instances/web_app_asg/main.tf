@@ -8,35 +8,6 @@ data "terraform_remote_state" "vpc" {
     }
 }
 
-resource "aws_security_group" "backend_instance" {
-    name = "${var.asg_name}-backend_instance"
-#    vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
-}
-
-resource "aws_security_group_rule" "ingress_https" {
-    type = "ingress"
-    from_port = local.from_port
-    to_port = local.to_port
-    protocol = local.protocol
-    cidr_blocks = local.cidr_blocks
-    security_group_id = aws_security_group.backend_instance.id
-}
-
-resource "aws_security_group_rule" "egress" {
-    type = "egress"
-    from_port = 0
-    to_port = 0
-    protocol = -1
-    cidr_blocks = local.cidr_blocks
-    security_group_id = aws_security_group.backend_instance.id
-}
-
-locals {
-    from_port = 443
-    to_port = 443
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] 
-}
 resource "aws_launch_configuration" "poppy_carts_backend" {
     image_id = var.ami
     instance_type = var.instance_type
@@ -51,8 +22,8 @@ resource "aws_launch_configuration" "poppy_carts_backend" {
 resource "aws_autoscaling_group" "poppy_carts_backend" {
     name = "${var.asg_name}-poppy_carts_backend"
     launch_configuration = aws_launch_configuration.poppy_carts_backend.name
-#    vpc_zone_identifier = data.terraform_remote_state.vpc.outputs.private_subnets
-    target_group_arns = []
+    vpc_zone_identifier = data.terraform_remote_state.vpc.outputs.private_subnets
+    target_group_arns = [aws_]
     health_check_type = var.health_check_type
 
     min_size = var.min_size
@@ -118,4 +89,28 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
   threshold           = 10
   unit                = "Count"
 }
+
+resource "aws_security_group" "backend_instance" {
+    name = "${var.asg_name}-backend_instance"
+#    vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
+}
+
+resource "aws_security_group_rule" "ingress_https" {
+    type = "ingress"
+    from_port = local.from_port
+    to_port = local.to_port
+    protocol = local.protocol
+    cidr_blocks = local.cidr_blocks
+    security_group_id = aws_security_group.backend_instance.id
+}
+
+
+locals {
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] 
+}
+
+
 

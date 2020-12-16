@@ -32,8 +32,8 @@ resource "aws_security_group" "elb_sg" {
 }
 
 # Allow specific outbound traffic - tweak the ports
-resource "aws_security_group_rule" "ingress" {
-  type = "ingress"
+resource "aws_security_group_rule" "egress" {
+  type = "egress"
   from_port   = 0
   to_port     = 0
   protocol    = "-1"
@@ -41,17 +41,17 @@ resource "aws_security_group_rule" "ingress" {
   cidr_blocks = ["0.0.0.0/0"]
 }
 
-# Inbound HTTP from web app only
-resource "aws_security_group_rule" "egress" {
-  type = "egress"
+# Inbound HTTP from web service (front-end) only
+resource "aws_security_group_rule" "ingress" {
+  type = "ingress"
   from_port   = var.elb_port
   to_port     = var.elb_port
   protocol    = local.tcp_protocol
   cidr_blocks = local.all_ips
 }
 
-resource "aws_alb_target_group" "poppy_carts_tg" {
-  name     = "poppy-carts-alb-target"
+resource "aws_elb_target_group" "poppy_carts_tg" {
+  name     = "poppy-carts-elb-target"
   port     = 80
   protocol = "HTTP"
   vpc_id   = data.terraform_remote_state.vpc.outputs.vpc_id

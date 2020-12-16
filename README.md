@@ -30,3 +30,5 @@ terraform apply
 
 #### 2. VPC or IAM Roles?
 Root account is not a good security practise. But then let's skip the IAM and go to VPC
+
+To be continued.... really.
